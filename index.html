@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DolphinOS v4.1 - 雲端同步系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --theme-color: 0, 191, 255; --theme-color-hex: #00bfff; }
+        body { font-family: 'Inter', sans-serif; background: #02040a; color: #e2e8f0; overflow: hidden; user-select: none; }
+        .tech-mono { font-family: 'Share Tech Mono', monospace; }
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+        .glassmorphism { background: rgba(10, 15, 30, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glassmorphism-dark { background: rgba(5, 7, 15, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .bg-grid { background-size: 50px 50px; background-image: linear-gradient(to right, rgba(0, 191, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 191, 255, 0.03) 1px, transparent 1px); }
+        .scanline::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 9999; pointer-events: none; }
+        .resize-handle { position: absolute; width: 12px; height: 12px; right: 0; bottom: 0; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, var(--theme-color-hex) 50%); }
+        .glow-theme { box-shadow: 0 0 20px rgba(var(--theme-color), 0.2); border: 1px solid rgba(var(--theme-color), 0.4); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .login-anim { animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="bg-grid scanline relative h-screen w-screen overflow-hidden">
+
+    <!-- 1. 系統遮罩層 (開機 / 登入 / 註冊) -->
+    <div id="system-overlay" class="fixed inset-0 bg-[#020208] z-[99999] flex flex-col items-center justify-center transition-all duration-1000">
+        <div id="boot-loader" class="text-center">
+            <div class="mb-6 relative flex items-center justify-center">
+                <div class="w-24 h-24 rounded-full border border-cyan-500/30 animate-spin" style="animation-duration: 4s;"></div>
+                <i class="fa-solid fa-dharmachakra text-4xl text-cyan-400 absolute animate-pulse"></i>
+            </div>
+            <h1 class="orbitron text-3xl font-black tracking-[0.5em] text-white">DOLPHIN <span class="text-cyan-400">OS</span></h1>
+            <p class="tech-mono text-cyan-700 text-[10px] mt-2 tracking-widest uppercase">正在同步雲端身份數據...</p>
+        </div>
+
+        <!-- 驗證視窗 -->
+        <div id="auth-window" class="hidden login-anim glassmorphism-dark p-10 rounded-[3rem] border border-white/10 w-[420px] shadow-2xl flex flex-col items-center">
+            <div id="auth-avatar-box" class="w-24 h-24 rounded-full bg-white/5 border-2 border-cyan-500/30 mb-6 overflow-hidden flex items-center justify-center">
+                <img id="auth-avatar-img" src="" class="w-full h-full object-cover hidden">
+                <i id="auth-avatar-icon" class="fa-solid fa-user-astronaut text-3xl text-cyan-500"></i>
+            </div>
+            <h2 id="auth-title" class="orbitron text-white text-lg font-bold tracking-[0.3em] mb-8 uppercase">系統安全登入</h2>
+            
+            <div class="w-full space-y-4">
+                <div class="relative">
+                    <i data-lucide="user" class="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="auth-username" placeholder="使用者名稱" class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs tech-mono outline-none focus:border-cyan-500/50 transition-all">
+                </div>
+                <div class="relative">
+                    <i data-lucide="lock" class="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                    <input type="password" id="auth-password" placeholder="密碼" class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs tech-mono outline-none focus:border-cyan-500/50 transition-all">
+                </div>
+                <div id="reg-avatar-input" class="relative hidden">
+                    <i data-lucide="image" class="w-4 h-4 text-slate-500 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="auth-avatar-url" placeholder="頭像圖片網址 (選填)" class="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs tech-mono outline-none focus:border-cyan-500/50 transition-all">
+                </div>
+
+                <button onclick="submitAuth()" id="auth-submit-btn" class="w-full py-4 bg-cyan-500 text-black orbitron font-black text-xs rounded-2xl hover:bg-cyan-400 transition-all shadow-lg shadow-cyan-500/20 uppercase">存取系統</button>
+                
+                <div class="flex justify-between px-2">
+                    <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-[9px] tech-mono text-cyan-600 hover:text-cyan-400 uppercase">註冊新身份帳號</button>
+                    <span class="text-[9px] tech-mono text-slate-700">v4.1 雲端版</span>
+                </div>
+            </div>
+            <p id="auth-error" class="text-red-500 text-[10px] tech-mono mt-6 h-4 opacity-0 transition-opacity"></p>
+        </div>
+    </div>
+
+    <!-- 2. 主桌面背景 -->
+    <div id="desktop-bg" class="absolute inset-0 z-0 transition-all duration-1000" style="background: radial-gradient(circle at center, #0a1025 0%, #02040a 100%);"></div>
+
+    <!-- 3. 頂部狀態列 -->
+    <div class="absolute top-0 left-0 right-0 h-10 glassmorphism border-b border-white/5 px-6 flex items-center justify-between z-50">
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-2 text-cyan-400 cursor-pointer" onclick="toggleMenu()">
+                <i class="fa-solid fa-bars-staggered text-sm"></i>
+                <span class="orbitron font-bold text-[10px] tracking-widest">系統功能選單</span>
+            </div>
+        </div>
+        <div class="orbitron text-[11px] font-medium tracking-widest text-slate-200"><span id="top-clock">00:00:00</span></div>
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 border-l border-white/10 pl-4">
+                <span id="top-user-name" class="tech-mono text-[10px] text-slate-300">訪客</span>
+                <img id="top-user-avatar" src="" class="w-6 h-6 rounded-full bg-white/5 hidden border border-white/20">
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 桌面圖示 -->
+    <div id="desktop-icons" class="absolute inset-0 pt-16 px-8 pb-24 grid grid-flow-row auto-rows-max grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-8 z-10 overflow-y-auto no-scrollbar">
+        <div onclick="openWindow('appstore')" class="flex flex-col items-center group cursor-pointer w-20">
+            <div class="w-14 h-14 rounded-2xl glassmorphism flex items-center justify-center border border-white/10 group-hover:border-cyan-500/50 group-hover:bg-cyan-500/10 transition-all shadow-xl">
+                <i data-lucide="shopping-bag" class="w-6 h-6 text-cyan-400"></i>
+            </div>
+            <span class="text-[10px] font-semibold text-slate-300 mt-2 text-center tech-mono">應用中心</span>
+        </div>
+        <div onclick="openWindow('settings')" class="flex flex-col items-center group cursor-pointer w-20">
+            <div class="w-14 h-14 rounded-2xl glassmorphism flex items-center justify-center border border-white/10 group-hover:border-purple-500/50 group-hover:bg-purple-500/10 transition-all shadow-xl">
+                <i data-lucide="settings" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <span class="text-[10px] font-semibold text-slate-300 mt-2 text-center tech-mono">系統設定</span>
+        </div>
+    </div>
+
+    <!-- 5. 視窗與底部列 -->
+    <div id="windows-container" class="absolute inset-0 z-20 pointer-events-none"></div>
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 h-14 px-4 glassmorphism rounded-2xl flex items-center space-x-2 z-50 glow-theme">
+        <button onclick="toggleMenu()" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-cyan-500/20 flex items-center justify-center transition-all">
+            <i class="fa-solid fa-ghost text-cyan-400 text-sm"></i>
+        </button>
+        <div class="h-6 w-[1px] bg-white/10 mx-2"></div>
+        <div id="taskbar-apps" class="flex items-center space-x-2"></div>
+    </div>
+
+    <!-- 6. 開始選單 -->
+    <div id="start-menu" class="fixed bottom-24 left-1/2 -translate-x-1/2 w-[400px] glassmorphism-dark rounded-3xl z-50 border border-white/10 p-6 hidden opacity-0 translate-y-10 transition-all duration-300">
+        <div class="flex items-center space-x-4 mb-8">
+            <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
+                <img id="start-user-avatar" src="" class="w-full h-full object-cover hidden">
+                <i id="start-user-icon" class="fa-solid fa-user-ninja text-white"></i>
+            </div>
+            <div>
+                <h3 id="start-user-name" class="orbitron text-xs font-black text-white tracking-widest uppercase">系統操作員</h3>
+                <p class="tech-mono text-[9px] text-cyan-500">授權狀態：已驗證</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button onclick="openWindow('appstore'); toggleMenu();" class="flex flex-col items-center p-4 rounded-2xl hover:bg-white/5 transition-all group">
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-cyan-400 group-hover:scale-110"></i>
+                <span class="text-[9px] tech-mono mt-2 text-slate-400">商店</span>
+            </button>
+            <button onclick="openWindow('settings'); toggleMenu();" class="flex flex-col items-center p-4 rounded-2xl hover:bg-white/5 transition-all group">
+                <i data-lucide="settings" class="w-5 h-5 text-purple-400 group-hover:scale-110"></i>
+                <span class="text-[9px] tech-mono mt-2 text-slate-400">設定</span>
+            </button>
+        </div>
+        <div class="border-t border-white/5 pt-6 flex space-x-2">
+            <button onclick="logout()" class="flex-1 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-[9px] orbitron font-bold tracking-[0.2em] transition-all">登出</button>
+            <button onclick="systemRestart()" class="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white text-[9px] orbitron font-bold tracking-[0.2em] transition-all">重啟</button>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed top-14 right-6 z-[9999] flex flex-col space-y-3 pointer-events-none"></div>
+
+    <script>
+        // --- 核心配置 ---
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwmgtIHKFg7opo5-4Pgubnfu4N7i_cELEx3K54FtSCB5z5rt8OwNmhIheLEukfko6VTLA/exec";
+        const USER_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTYcqaa4NHO0pmFAHqfHbXkWArQ1HeiTXyiyNHB2MIdLPqQN9mPRQjzeSCTehDtLEpdnZyiaPhURog9/pub?output=csv";
+        const APPS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRaOpCxuqlnhoWQLRPONkb_x_zh7SsgA0gsLkmiDcrhvY_SBZWPeG8-Dz7oxGkrDS3eI9OTt0cAh6v9/pub?output=csv";
+
+        let currentUser = null;
+        let cloudApps = [];
+        let userDatabase = [];
+        let openApps = {};
+        let zIndex = 100;
+        let isRegisterMode = false;
+        let activeCategory = '全部';
+
+        window.onload = async () => {
+            lucide.createIcons();
+            updateClock();
+            await fetchCloudData();
+            document.getElementById('boot-loader').classList.add('hidden');
+            document.getElementById('auth-window').classList.remove('hidden');
+        };
+
+        async function fetchCloudData() {
+            try {
+                const aRes = await fetch(APPS_CSV);
+                const aText = await aRes.text();
+                cloudApps = aText.split('\n').slice(1).map(l => {
+                    const p = l.split(',');
+                    return { cat: p[0], name: p[1], url: p[2], thumb: p[3], dev: p[4], id: p[5]?.trim() };
+                });
+
+                const uRes = await fetch(USER_CSV);
+                const uText = await uRes.text();
+                userDatabase = uText.split('\n').slice(1).map(l => {
+                    const p = l.split(',');
+                    // 使用 @ 切割已安裝的 App
+                    return { name: p[0], pass: p[1], avatar: p[2], apps: p[3]?.split('@').filter(x => x) || [], theme: p[4]?.trim() || 'cyan' };
+                });
+            } catch (e) { console.error("資料獲取失敗", e); }
+        }
+
+        function toggleAuthMode() {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('auth-title').innerText = isRegisterMode ? "身份註冊系統" : "安全登入系統";
+            document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "立即註冊" : "存取系統";
+            document.getElementById('auth-toggle-btn').innerText = isRegisterMode ? "返回登入" : "建立新身份帳號";
+            document.getElementById('reg-avatar-input').classList.toggle('hidden', !isRegisterMode);
+        }
+
+        async function submitAuth() {
+            const u = document.getElementById('auth-username').value;
+            const p = document.getElementById('auth-password').value;
+            const a = document.getElementById('auth-avatar-url').value;
+            if(!u || !p) return;
+
+            if(isRegisterMode) {
+                await syncToGAS(u, p, a, "", "cyan");
+                showToast("系統", "註冊成功，請登入。");
+                toggleAuthMode();
+            } else {
+                const user = userDatabase.find(x => x.name === u && x.pass === p);
+                if(user) {
+                    currentUser = user;
+                    enterSystem();
+                } else {
+                    document.getElementById('auth-error').innerText = "驗證失敗：名稱或密碼錯誤。";
+                    document.getElementById('auth-error').style.opacity = '1';
+                }
+            }
+        }
+
+        function enterSystem() {
+            document.getElementById('top-user-name').innerText = currentUser.name;
+            document.getElementById('start-user-name').innerText = currentUser.name;
+            setSystemTheme(currentUser.theme);
+            if(currentUser.avatar) {
+                document.getElementById('top-user-avatar').src = currentUser.avatar;
+                document.getElementById('top-user-avatar').classList.remove('hidden');
+                document.getElementById('start-user-avatar').src = currentUser.avatar;
+                document.getElementById('start-user-avatar').classList.remove('hidden');
+                document.getElementById('start-user-icon').classList.add('hidden');
+            }
+            document.getElementById('system-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('system-overlay').remove(), 1000);
+            renderInstalled();
+            showToast("歡迎", "DolphinOS 指令集載入完畢。");
+        }
+
+        async function syncToGAS(name, pass, avatar, appsStr, theme) {
+            const payload = { username: name, password: pass, avatar: avatar, installedApps: appsStr, theme: theme };
+            try {
+                await fetch(GAS_URL, {
+                    method: "POST", mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+            } catch (e) { console.error("同步失敗", e); }
+        }
+
+        async function saveCurrentState() {
+            if(!currentUser) return;
+            // 使用 @ 連接 App 代碼
+            const appsStr = currentUser.apps.join('@');
+            await syncToGAS(currentUser.name, currentUser.pass, currentUser.avatar, appsStr, currentUser.theme);
+            showToast("雲端同步", "配置已儲存至試算表。");
+        }
+
+        // --- 視窗管理器 (修正語法錯誤版本) ---
+        function openWindow(id, customApp = null) {
+            if(openApps[id]) { focusWindow(id); return; }
+            const app = customApp || (id === 'appstore' ? { name: "應用中心" } : { name: "系統設定" });
+            
+            const win = document.createElement('div');
+            win.id = `win-${id}`;
+            win.className = `absolute glassmorphism-dark rounded-3xl overflow-hidden border border-white/10 pointer-events-auto flex flex-col shadow-2xl transition-all`;
+            win.style.width = '850px'; win.style.height = '550px'; win.style.left = '200px'; win.style.top = '100px';
+            win.style.zIndex = ++zIndex;
+            win.onmousedown = () => focusWindow(id);
+
+            const externalBtn = app.url ? `<button onclick="window.open('${app.url}', '_blank')" class="text-[9px] tech-mono px-2 py-1 bg-white/5 hover:bg-white/10 rounded border border-white/10 mr-4">外部開啟</button>` : '';
+
+            win.innerHTML = `
+                <div class="h-12 border-b border-white/5 flex items-center justify-between px-6 cursor-move select-none" onmousedown="dragWin(event, '${id}')">
+                    <span class="tech-mono text-[10px] font-bold text-cyan-400 tracking-widest uppercase">${app.name}</span>
+                    <div class="flex items-center">
+                        ${externalBtn}
+                        <div onclick="closeWindow('${id}')" class="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/40 hover:bg-red-500 cursor-pointer transition-all"></div>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-hidden relative" id="body-${id}"></div>
+                <div class="resize-handle" onmousedown="resizeWin(event, '${id}')"></div>
+            `;
+            document.getElementById('windows-container').appendChild(win);
+            openApps[id] = { el: win };
+            
+            const body = document.getElementById(`body-${id}`);
+            if(app.url) {
+                body.innerHTML = `
+                <div class="absolute inset-0 flex flex-col items-center justify-center bg-black text-slate-500" id="loader-${id}">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mb-2"></div>
+                    <span class="text-[9px]">連線中...</span>
+                </div>
+                <iframe src="${app.url}" class="w-full h-full border-none bg-black" onload="document.getElementById('loader-${id}').remove()"></iframe>`;
+            } else {
+                const temp = document.getElementById(`app-template-${id}`);
+                if(temp) {
+                    const clone = temp.cloneNode(true); clone.classList.remove('hidden'); body.appendChild(clone);
+                    if(id === 'appstore') renderAppStore();
+                    if(id === 'settings') switchTab('info');
+                }
+            }
+            focusWindow(id);
+        }
+
+        function focusWindow(id) {
+            Object.values(openApps).forEach(a => a.el.style.borderColor = 'rgba(255,255,255,0.05)');
+            openApps[id].el.style.zIndex = ++zIndex;
+            openApps[id].el.style.borderColor = 'rgba(var(--theme-color), 0.3)';
+        }
+        function closeWindow(id) { openApps[id].el.remove(); delete openApps[id]; }
+        function dragWin(e, id) { const w = openApps[id].el; const sX=e.clientX-w.offsetLeft, sY=e.clientY-w.offsetTop; document.onmousemove=(ev)=>{w.style.left=(ev.clientX-sX)+'px';w.style.top=(ev.clientY-sY)+'px'}; document.onmouseup=()=>document.onmousemove=null; }
+        
+        // --- 修正後的 Resize 函數 ---
+        function resizeWin(e, id) {
+            e.stopPropagation();
+            const w = openApps[id].el;
+            const sW = w.offsetWidth;
+            const sH = w.offsetHeight;
+            const sX = e.clientX;
+            const sY = e.clientY;
+            document.onmousemove = (ev) => {
+                w.style.width = (sW + (ev.clientX - sX)) + 'px';
+                w.style.height = (sH + (ev.clientY - sY)) + 'px';
+            };
+            document.onmouseup = () => document.onmousemove = null;
+        }
+
+        // --- 商店與安裝 ---
+        function renderAppStore() {
+            const grid = document.getElementById('appstore-grid');
+            if(!grid) return;
+            const search = document.getElementById('store-search').value.toLowerCase();
+            const tabs = document.getElementById('store-category-tabs');
+            const cats = ['全部', ...new Set(cloudApps.map(a => a.cat))];
+            tabs.innerHTML = cats.map(c => `<button onclick="activeCategory='${c}'; renderAppStore();" class="px-3 py-1 rounded-lg text-[9px] tech-mono ${activeCategory===c?'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30':'text-slate-500 hover:text-white'}">${c}</button>`).join('');
+            grid.innerHTML = cloudApps
+                .filter(a => (activeCategory==='全部' || a.cat===activeCategory) && a.name.toLowerCase().includes(search))
+                .map(a => `
+                    <div class="bg-white/5 border border-white/5 p-4 rounded-2xl flex flex-col items-center text-center group hover:bg-white/10 transition-all">
+                        <img src="${a.thumb}" class="w-16 h-16 rounded-xl object-cover mb-4">
+                        <h4 class="text-xs font-bold text-white mb-1 tech-mono">${a.name}</h4>
+                        <p class="text-[9px] text-slate-500 mb-4 tech-mono">ID: ${a.id}</p>
+                        <button onclick="installApp('${a.id}')" class="w-full py-2 bg-cyan-500/10 border border-cyan-500/20 rounded-xl text-[10px] text-cyan-400 font-bold hover:bg-cyan-500 hover:text-black transition-all">部署安裝</button>
+                    </div>
+                `).join('');
+            lucide.createIcons();
+        }
+
+        async function installApp(appId) {
+            if(currentUser.apps.includes(appId)) return;
+            currentUser.apps.push(appId);
+            renderInstalled();
+            await saveCurrentState();
+        }
+
+        function renderInstalled() {
+            const desktop = document.getElementById('desktop-icons');
+            desktop.querySelectorAll('.installed-app').forEach(e => e.remove());
+            currentUser.apps.forEach(appId => {
+                const app = cloudApps.find(a => a.id === appId);
+                if(!app) return;
+                const div = document.createElement('div');
+                div.className = "flex flex-col items-center group cursor-pointer w-20 installed-app";
+                div.onclick = () => openWindow(app.id, app);
+                div.innerHTML = `<div class="w-14 h-14 rounded-2xl glassmorphism flex items-center justify-center border border-white/10 group-hover:border-cyan-500/50 group-hover:bg-cyan-500/10 transition-all shadow-xl overflow-hidden"><img src="${app.thumb}" class="w-full h-full object-cover"></div><span class="text-[10px] font-semibold text-slate-300 mt-2 text-center tech-mono truncate w-full px-1">${app.name}</span>`;
+                desktop.appendChild(div);
+            });
+        }
+
+        // --- 設定 Tab 切換 ---
+        function switchTab(tab) {
+            const main = document.getElementById('settings-main');
+            const sidebar = document.getElementById('settings-sidebar');
+            sidebar.querySelectorAll('button').forEach(b => b.className = "w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-[10px] tech-mono");
+            event.currentTarget.className = "w-full text-left px-4 py-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] tech-mono";
+
+            if(tab === 'info') {
+                main.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 tracking-widest uppercase">系統核心資訊</h3><div class="grid grid-cols-2 gap-4 tech-mono text-[10px]"><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">核心引擎</p><p>Dolphin V4.1</p></div><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">平台</p><p>${navigator.platform}</p></div></div>`;
+            } else if(tab === 'appearance') {
+                main.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 tracking-widest uppercase">霓虹配色設定</h3><div class="grid grid-cols-2 gap-4"><button onclick="updateTheme('cyan')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 tech-mono text-[10px] flex justify-between">霓虹藍 <div class="w-3 h-3 rounded-full bg-[#00bfff]"></div></button><button onclick="updateTheme('emerald')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-emerald-500/10 tech-mono text-[10px] flex justify-between">極光綠 <div class="w-3 h-3 rounded-full bg-[#10b981]"></div></button><button onclick="updateTheme('purple')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-purple-500/10 tech-mono text-[10px] flex justify-between">密碼紫 <div class="w-3 h-3 rounded-full bg-[#a853f7]"></div></button><button onclick="updateTheme('red')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-red-500/10 tech-mono text-[10px] flex justify-between">火岩紅 <div class="w-3 h-3 rounded-full bg-[#ef4444]"></div></button></div>`;
+            } else if(tab === 'profile') {
+                main.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 tracking-widest uppercase">個人帳號管理</h3><div class="space-y-4"><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1">名稱</label><input type="text" id="edit-username" value="${currentUser.name}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono"></div><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1">密碼</label><input type="password" id="edit-password" value="${currentUser.pass}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono"></div><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1">頭像網址</label><input type="text" id="edit-avatar" value="${currentUser.avatar}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono"></div><button onclick="updateProfile()" class="w-full py-3 bg-cyan-500 text-black orbitron font-black text-[10px] rounded-xl hover:bg-cyan-400 transition-all">儲存並更新雲端</button></div>`;
+            }
+        }
+
+        async function updateTheme(c) { currentUser.theme = c; setSystemTheme(c); await saveCurrentState(); }
+        async function updateProfile() {
+            currentUser.name = document.getElementById('edit-username').value;
+            currentUser.pass = document.getElementById('edit-password').value;
+            currentUser.avatar = document.getElementById('edit-avatar').value;
+            await saveCurrentState();
+            location.reload();
+        }
+
+        // --- 工具 ---
+        function updateClock() { setInterval(() => { document.getElementById('top-clock').innerText = new Date().toTimeString().split(' ')[0]; }, 1000); }
+        function setSystemTheme(c) {
+            let r, h;
+            if(c==='emerald'){r='16,185,129';h='#10b981'}else if(c==='purple'){r='168,85,247';h='#a853f7'}else if(c==='red'){r='239,68,68';h='#ef4444'}else{r='0,191,255';h='#00bfff';c='cyan'}
+            document.documentElement.style.setProperty('--theme-color',r); document.documentElement.style.setProperty('--theme-color-hex',h);
+        }
+        function toggleMenu() { const m = document.getElementById('start-menu'); if(m.classList.contains('hidden')){ m.classList.remove('hidden'); setTimeout(()=>m.classList.remove('opacity-0','translate-y-10'),10); } else { m.classList.add('opacity-0','translate-y-10'); setTimeout(()=>m.classList.add('hidden'),300); } }
+        function showToast(title, desc) {
+            const c = document.getElementById('toast-container'); const t = document.createElement('div');
+            t.className = "w-64 p-4 glassmorphism rounded-2xl border-l-4 border-cyan-400 transform translate-x-full transition-all duration-500 pointer-events-auto";
+            t.innerHTML = `<h4 class="orbitron text-[9px] text-white font-bold mb-1">${title}</h4><p class="tech-mono text-[8px] text-slate-400">${desc}</p>`;
+            c.appendChild(t); setTimeout(()=>t.classList.remove('translate-x-full'),10); setTimeout(()=>{ t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),500); }, 4000);
+        }
+        function systemRestart() { location.reload(); }
+        function logout() { location.reload(); }
+    </script>
+
+    <!-- 模板 -->
+    <div id="app-template-appstore" class="hidden h-full flex flex-col bg-[#02040a] text-slate-200">
+        <div class="p-6 border-b border-white/5 flex items-center justify-between">
+            <div class="relative w-64">
+                <i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="store-search" oninput="renderAppStore()" placeholder="搜尋 App..." class="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-[10px] tech-mono outline-none">
+            </div>
+            <div id="store-category-tabs" class="flex space-x-2"></div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-6 no-scrollbar"><div id="appstore-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
+    </div>
+    <div id="app-template-settings" class="hidden h-full bg-[#02040a] text-slate-300 flex">
+        <div class="w-1/3 border-r border-white/5 p-6 space-y-2" id="settings-sidebar">
+            <button onclick="switchTab('info')" class="w-full text-left px-4 py-3 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] tech-mono">核心資訊</button>
+            <button onclick="switchTab('profile')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-[10px] tech-mono">帳號管理</button>
+            <button onclick="switchTab('appearance')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-white/5 transition-all text-[10px] tech-mono">外觀配色</button>
+        </div>
+        <div class="flex-1 p-8 overflow-y-auto no-scrollbar" id="settings-main"></div>
+    </div>
+</body>
+</html>
