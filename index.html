@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DolphinOS v5.1 - 雲端卸載同步核心</title>
+    <title>DolphinOS v5.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         :root { --theme-color: 0, 191, 255; --theme-color-hex: #00bfff; }
         body { font-family: 'Inter', sans-serif; background: #02040a; color: #e2e8f0; overflow: hidden; user-select: none; }
@@ -16,22 +17,17 @@
         .glassmorphism { background: rgba(10, 15, 30, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .glassmorphism-dark { background: rgba(5, 7, 15, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .bg-grid { background-size: 50px 50px; background-image: linear-gradient(to right, rgba(0, 191, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0, 191, 255, 0.03) 1px, transparent 1px); }
-        .scanline::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); z-index: 9999; pointer-events: none; }
+        
         .resize-handle { position: absolute; width: 12px; height: 12px; right: 0; bottom: 0; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, var(--theme-color-hex) 50%); }
         .glow-theme { box-shadow: 0 0 20px rgba(var(--theme-color), 0.2); border: 1px solid rgba(var(--theme-color), 0.4); }
         iframe { background-color: white; border-radius: 0 0 1.5rem 1.5rem; transition: opacity 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         .app-window { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .btn-active { background: rgba(var(--theme-color), 0.2) !important; color: var(--theme-color-hex) !important; border-color: rgba(var(--theme-color), 0.4) !important; }
-        
-        /* 刪除按鈕樣式 */
-        .delete-btn { opacity: 0; transform: scale(0.5); transition: all 0.2s ease; }
-        .desktop-app-wrapper:hover .delete-btn { opacity: 1; transform: scale(1); }
     </style>
 </head>
-<body class="bg-grid scanline relative h-screen w-screen overflow-hidden">
+<body class="bg-grid relative h-screen w-screen overflow-hidden">
 
-    <!-- 系統遮罩層 -->
     <div id="system-overlay" class="fixed inset-0 bg-[#020208] z-[99999] flex flex-col items-center justify-center transition-all duration-1000">
         <div id="boot-loader" class="text-center">
             <div class="mb-6 relative flex items-center justify-center">
@@ -39,7 +35,7 @@
                 <i class="fa-solid fa-dharmachakra text-4xl text-cyan-400 absolute animate-pulse"></i>
             </div>
             <h1 class="orbitron text-3xl font-black tracking-[0.5em] text-white">DOLPHIN <span class="text-cyan-400">OS</span></h1>
-            <p class="tech-mono text-cyan-700 text-[10px] mt-2 tracking-widest uppercase">系統核心載入中 v5.1 PRO...</p>
+            <p class="tech-mono text-cyan-700 text-[10px] mt-2 tracking-widest uppercase">系統核心載入中 v5.3 PRO...</p>
         </div>
 
         <div id="auth-window" class="hidden glassmorphism-dark p-10 rounded-[3rem] border border-white/10 w-[420px] shadow-2xl flex flex-col items-center">
@@ -59,7 +55,6 @@
         </div>
     </div>
 
-    <!-- 頂部狀態列 -->
     <div class="absolute top-0 left-0 right-0 h-10 glassmorphism border-b border-white/5 px-6 flex items-center justify-between z-50">
         <div class="flex items-center space-x-6">
             <div class="flex items-center space-x-2 text-cyan-400 cursor-pointer" onclick="toggleMenu()"><i class="fa-solid fa-bars-staggered text-sm"></i><span class="orbitron font-bold text-[10px] tracking-widest uppercase">Dolphin_OS</span></div>
@@ -85,7 +80,7 @@
 
     <div id="windows-container" class="absolute inset-0 z-20 pointer-events-none"></div>
 
-    <!-- 底部列 -->
+    <!-- 底部導覽列 -->
     <div class="absolute bottom-6 left-1/2 -translate-x-1/2 h-14 px-4 glassmorphism rounded-2xl flex items-center space-x-2 z-50 glow-theme">
         <button onclick="toggleMenu()" class="w-10 h-10 rounded-xl bg-white/5 hover:bg-cyan-500/20 flex items-center justify-center transition-all"><i class="fa-solid fa-compass text-cyan-400 text-sm"></i></button>
         <div class="h-6 w-[1px] bg-white/10 mx-2"></div>
@@ -152,7 +147,6 @@
         async function syncToGAS(n, p, a, apps, t) { try { await fetch(GAS_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: n, password: p, avatar: a, installedApps: apps, theme: t }) }); } catch (e) {} }
         async function saveCurrentState() { if(!currentUser) return; await syncToGAS(currentUser.name, currentUser.pass, currentUser.avatar, currentUser.apps.join('@'), currentUser.theme); }
 
-        // --- 視窗管理核心 ---
         function openWindow(id, customApp = null) {
             if(openApps[id]) { focusWindow(id); return; }
             const app = customApp || (id === 'appstore' ? { name: "應用中心" } : { name: "系統設定" });
@@ -184,7 +178,15 @@
             if (finalUrl.includes('youtube.com/watch?v=')) { const vid = finalUrl.split('v=')[1].split('&')[0]; finalUrl = `https://www.youtube.com/embed/${vid}?autoplay=1`; }
             else if (finalUrl.includes('youtu.be/')) { const vid = finalUrl.split('be/')[1].split('?')[0]; finalUrl = `https://www.youtube.com/embed/${vid}?autoplay=1`; } 
             else if (app.proxy === 'T') { finalUrl = CLOUDFLARE_PROXY + encodeURIComponent(finalUrl); }
-            b.innerHTML = `<div class="absolute inset-0 flex flex-col items-center justify-center bg-black text-slate-500" id="loader-${id}"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mb-2"></div><span class="text-[9px] tech-mono uppercase">連線載入中...</span></div><iframe src="${finalUrl}" class="w-full h-full border-none" onload="document.getElementById('loader-${id}').remove()"></iframe>`;
+            
+            // 核心修改：不給予 allow-top-navigation 標籤，把所有的跳轉與點擊交互強制鎖死在內嵌框架(iframe)內部！
+            b.innerHTML = `
+                <div class="absolute inset-0 flex flex-col items-center justify-center bg-black text-slate-500" id="loader-${id}">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mb-2"></div>
+                    <span class="text-[9px] tech-mono uppercase">連線載入中...</span>
+                </div>
+                <iframe src="${finalUrl}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" class="w-full h-full border-none" onload="document.getElementById('loader-${id}').remove()"></iframe>
+            `;
         }
 
         function refreshIframe(winId, appId) { const app = (appId === 'appstore' || appId === 'settings') ? null : cloudApps.find(x => x.id === appId); if(app) loadIframe(winId, app); else location.reload(); }
@@ -193,7 +195,6 @@
         function dragWin(e, id) { const w = openApps[id].el; const sX=e.clientX-w.offsetLeft, sY=e.clientY-w.offsetTop; document.onmousemove=(ev)=>{w.style.left=(ev.clientX-sX)+'px';w.style.top=(ev.clientY-sY)+'px'}; document.onmouseup=()=>document.onmousemove=null; }
         function resizeWin(e, id) { e.stopPropagation(); const w = openApps[id].el; const sW=w.offsetWidth, sH=w.offsetHeight, sX=e.clientX, sY=e.clientY; document.onmousemove=(ev)=>{w.style.width=(sW+(ev.clientX-sX))+'px';w.style.height=(sH+(ev.clientY-sY))+'px'}; document.onmouseup=()=>document.onmousemove=null; }
 
-        // --- 核心：App 安裝與卸載邏輯 ---
         function renderAppStore() {
             const grid = document.getElementById('appstore-grid'); if(!grid) return;
             const search = document.getElementById('store-search').value.toLowerCase();
@@ -219,7 +220,7 @@
             if(currentUser.apps.includes(id)) return;
             currentUser.apps.push(id);
             renderInstalled();
-            renderAppStore(); // 更新商店按鈕
+            renderAppStore();
             await saveCurrentState();
             showToast("系統通知", "App 部署成功。");
         }
@@ -227,7 +228,7 @@
         async function uninstallApp(id) {
             currentUser.apps = currentUser.apps.filter(appId => appId !== id);
             renderInstalled();
-            renderAppStore(); // 更新商店按鈕
+            renderAppStore();
             await saveCurrentState();
             showToast("系統通知", "App 已從雲端節點移除。");
         }
@@ -240,9 +241,6 @@
                 const div = document.createElement('div');
                 div.className = "desktop-app-wrapper flex flex-col items-center group cursor-pointer w-20 relative installed-app-wrapper";
                 div.innerHTML = `
-                    <div class="delete-btn absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center z-20 shadow-lg hover:bg-red-600" onclick="event.stopPropagation(); uninstallApp('${a.id}')">
-                        <i class="fa-solid fa-xmark text-[10px]"></i>
-                    </div>
                     <div class="w-14 h-14 rounded-2xl glassmorphism flex items-center justify-center border border-white/10 group-hover:border-cyan-500/50 shadow-xl overflow-hidden z-10" onclick="openWindow('${a.id}', ${JSON.stringify(a).replace(/"/g, '&quot;')})">
                         <img src="${a.thumb}" class="w-full h-full object-cover">
                     </div>
@@ -257,7 +255,7 @@
             const sidebar = document.getElementById('settings-sidebar');
             sidebar.querySelectorAll('button').forEach(b => b.classList.remove('btn-active'));
             event.currentTarget.classList.add('btn-active');
-            if(t === 'info') m.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 uppercase">系統核心資訊</h3><div class="grid grid-cols-2 gap-4 tech-mono text-[10px]"><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">系統版本</p><p>Dolphin v5.1 PRO</p></div><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">雲端核心</p><p class="text-emerald-400">SYNC_ON</p></div></div>`;
+            if(t === 'info') m.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 uppercase">系統核心資訊</h3><div class="grid grid-cols-2 gap-4 tech-mono text-[10px]"><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">系統版本</p><p>Dolphin v5.3 PRO</p></div><div class="bg-white/5 p-4 rounded-xl border border-white/5"><p class="text-slate-500">雲端核心</p><p class="text-emerald-400">SYNC_ON</p></div></div>`;
             else if(t === 'appearance') m.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 uppercase">配色偏好設定</h3><div class="grid grid-cols-2 gap-4"><button onclick="updateTheme('cyan')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 tech-mono text-[10px] flex justify-between">霓虹藍 <div class="w-3 h-3 rounded-full bg-[#00bfff]"></div></button><button onclick="updateTheme('emerald')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-emerald-500/10 tech-mono text-[10px] flex justify-between">極光綠 <div class="w-3 h-3 rounded-full bg-[#10b981]"></div></button><button onclick="updateTheme('purple')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-purple-500/10 tech-mono text-[10px] flex justify-between">密碼紫 <div class="w-3 h-3 rounded-full bg-[#a853f7]"></div></button><button onclick="updateTheme('red')" class="p-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-red-500/10 tech-mono text-[10px] flex justify-between">火岩紅 <div class="w-3 h-3 rounded-full bg-[#ef4444]"></div></button></div>`;
             else if(t === 'profile') m.innerHTML = `<h3 class="orbitron text-xs font-bold text-cyan-400 mb-6 uppercase">身分帳號管理</h3><div class="space-y-4"><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1 uppercase">使用者名稱</label><input type="text" id="edit-username" value="${currentUser.name}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono outline-none focus:border-cyan-500"></div><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1 uppercase">新存取密碼</label><input type="password" id="edit-password" value="${currentUser.pass}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono outline-none focus:border-cyan-500"></div><div class="flex flex-col"><label class="text-[9px] text-slate-500 tech-mono mb-1 uppercase">頭像 URL</label><input type="text" id="edit-avatar" value="${currentUser.avatar}" class="bg-white/5 border border-white/10 rounded-xl p-3 text-xs tech-mono outline-none focus:border-cyan-500"></div><button onclick="updateProfile()" class="w-full py-3 bg-cyan-500 text-black orbitron font-black text-[10px] rounded-xl hover:bg-cyan-400 uppercase transition-all">更新雲端檔案</button></div>`;
         }
@@ -273,7 +271,7 @@
         function showToast(title, desc) { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = "w-64 p-4 glassmorphism rounded-2xl border-l-4 border-cyan-400 transform translate-x-full transition-all duration-500 pointer-events-auto shadow-2xl"; t.innerHTML = `<h4 class="orbitron text-[9px] text-white font-bold mb-1 uppercase">${title}</h4><p class="tech-mono text-[8px] text-slate-400 uppercase">${desc}</p>`; c.appendChild(t); setTimeout(()=>t.classList.remove('translate-x-full'),10); setTimeout(()=>{ t.classList.add('translate-x-full'); setTimeout(()=>t.remove(),500); }, 4000); }
     </script>
 
-    <!-- 系統 App 模板 -->
+    <!-- 系統 App 靜態 HTML 範本 -->
     <div id="app-template-appstore" class="hidden h-full flex flex-col bg-[#02040a] text-slate-200">
         <div class="p-6 border-b border-white/5 flex items-center justify-between"><div class="relative w-64"><i data-lucide="search" class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2"></i><input type="text" id="store-search" oninput="renderAppStore()" placeholder="搜尋雲端程式..." class="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-[10px] tech-mono outline-none"></div><div id="store-category-tabs" class="flex space-x-2"></div></div>
         <div class="flex-1 overflow-y-auto p-6 no-scrollbar"><div id="appstore-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div></div>
